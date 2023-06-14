@@ -13,7 +13,7 @@ to setup
     set grass-amount random-float 10.0
     recolor-grass ;; change the world green
   ]
-
+  
   ;; create the initial sheep
   create-sheep number-of-sheep [
     setxy random-xcor random-ycor
@@ -21,7 +21,7 @@ to setup
     set shape "sheep"
     set energy 100  ;; set the initial energy to 100
   ]
-
+  
   ;; create the initial wolves
   create-wolves number-of-wolves [
     setxy random-xcor random-ycor
@@ -30,7 +30,7 @@ to setup
     set size 2 ;; increase their size so they are a little easier to see
     set energy 100  ;; set the initial energy to 100
   ]
-
+  
   reset-ticks
 end
 
@@ -40,9 +40,9 @@ to go
   if not any? turtles [   ;; now check for any turtles, that is both wolves and sheep
     stop
   ]
-
+  
   ask turtles [  ;; ask both wolves and sheep
-    ; Hareket türüne bağlı olarak hareket etme prosedürünü çağır
+    ; Call the movement procedure depending on the type of movement
     ifelse breed = sheep [
       ifelse (movement-type-sheeps = "random-movement") [
         random-movement
@@ -56,52 +56,53 @@ to go
         intelligent-movement
       ]
     ]
-
+    
     check-if-dead  ;; check to see if agent should die
     eat            ;; sheep eat grass, wolves eat sheep
     reproduce
   ]
-
+  
   regrow-grass ;; regrow the grass
   tick
   my-update-plots  ;; plot the population counts
 end
+ 
 
 
 
-  ; Rastgele dönme
+  ; Random rotation
 to random-movement
   wiggle
-
-  ; İleri gitme
+  
+  ; Moving forward
   move
 end
 
 
-; Akıllı hareket kodları
+; Intelligent movement codes
 to intelligent-movement
   if breed = sheep [
     let closest-wolf min-one-of wolves in-radius perception-range [
       distance myself
     ]
-
+    
     if closest-wolf != nobody [
-      face closest-wolf ; En yakın kurtun bulunduğu yöne doğru dön
-      lt 180 ; Dönüşü tersine çevirerek kurtun bulunduğu yöne ters yöne dön
+      face closest-wolf ; Turn in the direction of the nearest wolf
+      lt 180 ; Reverse the turn to face the opposite direction to where the wolf is
     ]
-
+    
     move
   ]
-
+  
   if breed = wolves [
     let closest-sheep min-one-of sheep in-radius perception-range [
       distance myself
     ]
-
+    
     if closest-sheep != nobody [
-      face closest-sheep ; En yakın koyuna doğru dön
+      face closest-sheep ; Turn towards the nearest cove
     ]
-
+    
     move
   ]
 end
@@ -126,6 +127,9 @@ to eat-grass
     recolor-grass
   ]
 end
+
+
+
 ;; wolf procedure, wolves eat sheep
 to eat-sheep
   if any? sheep-here [  ;; if there are sheep here then eat one
@@ -136,7 +140,22 @@ to eat-sheep
     ;; increase the energy by the parameter setting
     set energy energy + energy-gain-from-sheep
   ]
+  
+  ;; Check if the wolf's energy exceeds the split threshold
+  if breed = wolves and energy > (2 * 100) [
+    ;; Split the wolf into two offspring with half the energy
+    hatch 1 [
+      set energy (energy / 2)
+      set color brown
+      set shape "wolf"
+      set size 2
+    ]
+  ]
 end
+
+
+
+
 
 ;; turtle procedure (both wolves and sheep); check to see if this turtle has enough energy to reproduce
 to reproduce
@@ -163,14 +182,14 @@ end
 ;; regrow the grass
 to regrow-grass
   ask patches [
-    ; Otun yeniden büyümesi
+    ; Regrowth of grass
     set grass-amount grass-amount + grass-regrowth-rate
-
-    ; Ot miktarı sınırlarını kontrol et
+    
+    ; Control grass quantity limits
     if grass-amount > 10.0 [
       set grass-amount 10.0
     ]
-
+    
     recolor-grass
   ]
 end
@@ -191,6 +210,9 @@ to wiggle
   lt random 90
 end
 
+
+
+
 ;; update the plots
 to my-update-plots
   set-current-plot-pen "sheep"
@@ -198,23 +220,26 @@ to my-update-plots
 
   set-current-plot-pen "wolves"
   plot count wolves * 10 ;; scaling factor so plot looks nice
-
-  set-current-plot-pen "grass"
-  plot sum [ grass-amount ] of patches / 50 ;; scaling factor so plot looks nice
-end
-
-to-report average-sheep-lifetime
-  ; Ortalama koyun yaşam süresi hesaplanması
+  
+  let average-lifetime 0
   let total-lifetime 0
   ask sheep [
     set total-lifetime total-lifetime + ticks
   ]
   ifelse count sheep > 0 [
-    report total-lifetime / count sheep
+    set average-lifetime total-lifetime / count sheep
   ] [
-    report 0
+    set average-lifetime 0
   ]
+  set-current-plot-pen "average-sheep-lifetime"
+  plot average-lifetime
+
+  ;set-current-plot-pen "grass"
+  ;plot sum [ grass-amount ] of patches / 50 ;; scaling factor so plot looks nice
 end
+
+
+
 
 to interface-setup
   clear-all
